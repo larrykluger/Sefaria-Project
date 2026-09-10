@@ -91,14 +91,16 @@ class LanguageSettingsMiddleware(MiddlewareMixin):
             return # Save looking up a UserProfile, or redirecting when not needed
 
         profile = UserProfile(id=request.user.id) if request.user.is_authenticated else None
-        # INTERFACE 
-        # Our logic for setting interface lang checks (1) User profile, (2) cookie, (3) geolocation, (4) HTTP language code
+        # INTERFACE
+        # Our logic for setting interface lang checks (1) User profile, (2) cookie, (3) default to english.
+        # Geolocation (Cloudflare) and the browser's Accept-Language header are intentionally NOT used to
+        # determine the initial interface language -- only an explicit user preference (profile or cookie) does.
         interface = None
         if request.user.is_authenticated and not interface:
-            interface = profile.settings["interface_language"] if "interface_language" in profile.settings else interface 
-        if not interface: 
-            # Pull language setting from cookie, location (set by Cloudflare) or Accept-Lanugage header or default to english
-            interface = request.COOKIES.get('interfaceLang') or request.headers.get("cf-ipcountry") or request.LANGUAGE_CODE or 'english'
+            interface = profile.settings["interface_language"] if "interface_language" in profile.settings else interface
+        if not interface:
+            # Pull language setting from cookie, or default to english
+            interface = request.COOKIES.get('interfaceLang') or 'english'
             interface = 'hebrew' if interface in ('IL', 'he', 'he-il') else interface
             # Don't allow languages other than what we currently handle
             interface = 'english' if interface not in ('english', 'hebrew') else interface
